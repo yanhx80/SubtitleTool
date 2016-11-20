@@ -11,14 +11,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
     subtitle = new Subtitle();
     newSubtitle = new Subtitle();
     connect(ui->translateButton, SIGNAL(clicked(bool)), this, SLOT(translate()));
     connect(ui->openFile, SIGNAL(triggered(bool)), this, SLOT(openFromFile()));
     connect(ui->saveSubtitle, SIGNAL(triggered(bool)), this, SLOT(saveToFile()));
-    connect(ui->textFromEdit->verticalScrollBar(), SIGNAL(sliderMoved(int)), ui->textToEdit->verticalScrollBar(), SLOT(setValue(int)));
-    connect(ui->textToEdit->verticalScrollBar(), SIGNAL(sliderMoved(int)), ui->textFromEdit->verticalScrollBar(), SLOT(setValue(int)));
+    connect(ui->textFromEdit->verticalScrollBar(), SIGNAL(valueChanged(int)),
+            ui->textToEdit->verticalScrollBar(), SLOT(setValue(int)));
+    connect(ui->textToEdit->verticalScrollBar(), SIGNAL(valueChanged(int)),
+            ui->textFromEdit->verticalScrollBar(), SLOT(setValue(int)));
 }
 
 MainWindow::~MainWindow()
@@ -29,21 +30,20 @@ MainWindow::~MainWindow()
 void MainWindow::translate()
 {
     translateCore = new BaiduTranslate();
-    for (int i = 0; i < subtitle->line.size(); ++i)
-    {
-        connect(translateCore, SIGNAL(finished(int, QString)), this, SLOT(getTranslation(int, QString)));
-        translateCore->translateText(i, subtitle->line[i],
-                                     ui->fromLanguageBox->currentText(),
-                                     ui->toLanguageBox->currentText());
-    }
-    //delete translateCore;
+    connect(translateCore, SIGNAL(finished(int, QString)), this, SLOT(getTranslation(int, QString)));
+    translateCore->translateText(0, subtitle->line[0],
+                                 ui->fromLanguageBox->currentText(),
+                                 ui->toLanguageBox->currentText());
 }
 
 void MainWindow::getTranslation(int id, QString ans)
 {
     newSubtitle->line[id] = ans;
     ui->textToEdit->setItem(id, 0, new QTableWidgetItem(ans));
-    //ui->textToEdit->append(QString("'%1'").arg(id) + ans);
+    if (id+1 < subtitle->line.size())
+        translateCore->translateText(id+1, subtitle->line[id+1],
+                                     ui->fromLanguageBox->currentText(),
+                                     ui->toLanguageBox->currentText());
 }
 
 void MainWindow::openFromFile()
